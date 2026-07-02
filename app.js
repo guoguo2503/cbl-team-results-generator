@@ -272,9 +272,13 @@ function drawTeamBanner(ctx, match, homeColor, awayColor) {
   drawTeamMark(ctx, 210, 940, match.homeTeam, homeColor);
   drawTeamMark(ctx, 870, 940, match.awayTeam, awayColor);
 
-  drawCenteredText(ctx, match.homeTeam, 416, 962, 46, 230, "#fff", 900, "italic");
+  drawFittedText(ctx, match.homeTeam, 490, 962, 43, 230, "#fff", 900, "italic", "right");
+  drawFittedText(ctx, match.awayTeam, 590, 962, 43, 230, "#fff", 900, "italic", "left");
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 8;
   drawCenteredText(ctx, "VS", 540, 962, 44, 82, "#fff", 900, "italic");
-  drawCenteredText(ctx, match.awayTeam, 672, 962, 46, 230, "#fff", 900, "italic");
+  ctx.restore();
 }
 
 function drawTeamMark(ctx, x, y, teamName, colors) {
@@ -375,9 +379,13 @@ function makeRows(match) {
 }
 
 function drawCenteredText(ctx, text, x, y, maxSize, maxWidth, color, weight = 800, style = "normal") {
+  drawFittedText(ctx, text, x, y, maxSize, maxWidth, color, weight, style, "center");
+}
+
+function drawFittedText(ctx, text, x, y, maxSize, maxWidth, color, weight = 800, style = "normal", align = "center") {
   const value = `${text || ""}`;
   let size = maxSize;
-  ctx.textAlign = "center";
+  ctx.textAlign = align;
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = color;
   do {
@@ -445,6 +453,25 @@ function downloadCanvas(canvas, filename) {
   link.click();
 }
 
+function downloadLongPoster() {
+  if (!matches.length) return;
+  const gap = 0;
+  const longCanvas = document.createElement("canvas");
+  longCanvas.width = 1080;
+  longCanvas.height = matches.length * 1581 + Math.max(0, matches.length - 1) * gap;
+  const ctx = longCanvas.getContext("2d");
+
+  matches.forEach((match, index) => {
+    const poster = document.createElement("canvas");
+    poster.width = 1080;
+    poster.height = 1581;
+    drawPoster(poster, match);
+    ctx.drawImage(poster, 0, index * (1581 + gap));
+  });
+
+  downloadCanvas(longCanvas, `团体赛果长图-${matches.length}场.png`);
+}
+
 function handleFiles(files) {
   const list = Array.from(files || []);
   fileStrip.innerHTML = "";
@@ -502,9 +529,7 @@ blankButton.addEventListener("click", () => {
 });
 
 downloadAllButton.addEventListener("click", () => {
-  document.querySelectorAll(".preview-card canvas").forEach((canvas, index) => {
-    setTimeout(() => downloadCanvas(canvas, fileNameFor(matches[index], index)), index * 160);
-  });
+  downloadLongPoster();
 });
 
 setMatches(sampleMatches.slice(0, 2), "示例已载入");

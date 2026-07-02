@@ -221,7 +221,7 @@ h2 {
 
 .editor-grid {
   display: grid;
-  grid-template-columns: minmax(620px, 1fr) 430px;
+  grid-template-columns: 430px minmax(650px, 1fr);
   gap: 18px;
   align-items: start;
 }

@@ -58,8 +58,7 @@ const server = http.createServer(async (request, response) => {
       sendJson(response, payload);
     } catch (error) {
       console.error(error);
-      response.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
-      response.end(JSON.stringify({ matches: sampleMatches, warnings: ["识别失败，已返回示例数据"] }));
+      sendJson(response, { matches: sampleMatches, warnings: ["识别失败，已返回示例数据"] });
     }
     return;
   }
@@ -156,19 +155,55 @@ async function extractMatches(images) {
 
 async function extractWithOpenAICompatible(images) {
   const endpoint = `${extractBaseUrl.replace(/\/$/, "")}/chat/completions`;
+  const payload = await requestOpenAICompatible(endpoint, images, {
+    imageDetail: true,
+    responseFormat: true,
+  }).catch((error) => {
+    if (!shouldRetryCompatibleRequest(error)) throw error;
+    return requestOpenAICompatible(endpoint, images, {
+      imageDetail: false,
+      responseFormat: false,
+    });
+  });
+
+  const text = payload.choices?.[0]?.message?.content || "";
+  const parsed = parseJsonPayload(text);
+  const matches = normalizeMatches(parsed.matches || parsed);
+  const warnings = Array.isArray(parsed.warnings) ? parsed.warnings : [];
+  return {
+    matches: matches.length ? matches : sampleMatches,
+    warnings: matches.length ? warnings : ["未识别到有效赛果，已返回示例数据"],
+  };
+}
+
+async function requestOpenAICompatible(endpoint, images, options) {
   const content = [
     {
       type: "text",
       text: extractionPrompt(),
     },
-    ...images.map((image) => ({
-      type: "image_url",
-      image_url: {
+    ...images.map((image) => {
+      const imageUrl = {
         url: `data:${image.contentType};base64,${image.buffer.toString("base64")}`,
-        detail: "high",
-      },
-    })),
+      };
+      if (options.imageDetail) imageUrl.detail = "high";
+      return {
+        type: "image_url",
+        image_url: imageUrl,
+      };
+    }),
   ];
+  const body = {
+    model: extractModel,
+    temperature: 0,
+    messages: [
+      {
+        role: "user",
+        content,
+      },
+    ],
+  };
+  if (options.responseFormat) body.response_format = { type: "json_object" };
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -178,31 +213,21 @@ async function extractWithOpenAICompatible(images) {
       "HTTP-Referer": "https://github.com/guoguo2503/cbl-team-results-generator",
       "X-Title": "CBL Team Results Generator",
     },
-    body: JSON.stringify({
-      model: extractModel,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content,
-        },
-      ],
-    }),
+    body: JSON.stringify(body),
   });
 
   const raw = await response.text();
   if (!response.ok) {
-    throw new Error(`extract request failed: ${response.status} ${raw.slice(0, 400)}`);
+    const error = new Error(`extract request failed: ${response.status} ${raw.slice(0, 400)}`);
+    error.status = response.status;
+    throw error;
   }
 
-  const payload = JSON.parse(raw);
-  const text = payload.choices?.[0]?.message?.content || "";
-  const parsed = parseJsonPayload(text);
-  return {
-    matches: normalizeMatches(parsed.matches || parsed),
-    warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
-  };
+  return JSON.parse(raw);
+}
+
+function shouldRetryCompatibleRequest(error) {
+  return [400, 415, 422].includes(error.status);
 }
 
 function extractionPrompt() {

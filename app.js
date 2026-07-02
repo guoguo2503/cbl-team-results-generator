@@ -650,7 +650,7 @@ function downloadLongPoster() {
   downloadCanvas(longCanvas, `团体赛果长图-${matches.length}场.png`);
 }
 
-function handleFiles(files) {
+async function handleFiles(files) {
   const list = Array.from(files || []);
   fileStrip.innerHTML = "";
   list.forEach((file) => {
@@ -666,17 +666,45 @@ function handleFiles(files) {
   });
 
   if (!list.length) return;
+  statusText.textContent = "正在读取";
+  const extracted = await extractMatches(list);
+  setMatches(extracted, "已生成校对表");
+}
+
+async function extractMatches(files) {
+  if (window.location.protocol !== "file:") {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append("images", file, file.name));
+      const response = await fetch("/api/extract", {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        if (Array.isArray(payload.matches) && payload.matches.length) {
+          return payload.matches;
+        }
+      }
+    } catch (error) {
+      console.warn("extract fallback", error);
+    }
+  }
+  return mockExtractMatches(files);
+}
+
+function mockExtractMatches(files) {
   const next = [];
-  list.forEach((file) => {
+  files.forEach((file) => {
     if (file.name.includes("原始表1")) {
-      next.push(sampleMatches[2], sampleMatches[3]);
+      next.push(sampleMatches[0], sampleMatches[1]);
     } else if (file.name.includes("原始表2")) {
-      next.push(sampleMatches[1], sampleMatches[0]);
+      next.push(sampleMatches[3], sampleMatches[2]);
     } else {
       next.push(blankMatch);
     }
   });
-  setMatches(next, "已生成校对表");
+  return next;
 }
 
 fileInput.addEventListener("change", (event) => {

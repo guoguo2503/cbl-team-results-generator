@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CBL 团体赛果自动出图工具</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workbench">
+        <header class="topbar">
+          <div>
+            <p class="kicker">CBL CONTENT OPS</p>
+            <h1>团体赛果自动出图工具</h1>
+          </div>
+          <div class="status-pill" id="statusText">MVP 原型</div>
+        </header>
+
+        <section class="panel upload-panel">
+          <div class="upload-zone" id="dropZone">
+            <input id="fileInput" type="file" accept="image/png,image/jpeg" multiple />
+            <label for="fileInput">
+              <span class="upload-icon">+</span>
+              <span>上传原始表截图</span>
+            </label>
+          </div>
+          <div class="upload-actions">
+            <button class="primary-action" id="mockButton" type="button">载入示例数据</button>
+            <button class="ghost-action" id="blankButton" type="button">新增空白对阵</button>
+          </div>
+          <div class="file-strip" id="fileStrip"></div>
+        </section>
+
+        <section class="editor-grid">
+          <div class="panel match-panel">
+            <div class="panel-heading">
+              <h2>赛果校对</h2>
+              <span id="matchCount">0 场</span>
+            </div>
+            <div class="match-list" id="matchList"></div>
+          </div>
+
+          <aside class="panel preview-panel">
+            <div class="panel-heading">
+              <h2>出图预览</h2>
+              <button class="ghost-action" id="downloadAllButton" type="button">全部下载</button>
+            </div>
+            <div class="preview-list" id="previewList"></div>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <template id="matchTemplate">
+      <article class="match-card">
+        <div class="match-card-header">
+          <input class="field group-field" data-field="group" aria-label="组别" />
+          <input class="field round-field" data-field="round" aria-label="轮次" />
+          <button class="icon-button remove-match" type="button" title="删除">×</button>
+        </div>
+
+        <div class="meta-row">
+          <label>
+            <span>时间</span>
+            <input class="field" data-field="datetime" />
+          </label>
+          <label>
+            <span>赛段</span>
+            <input class="field" data-field="stage" />
+          </label>
+        </div>
+
+        <div class="teams-grid">
+          <div class="team-box">
+            <label>
+              <span>主队</span>
+              <input class="field team-name" data-field="homeTeam" />
+            </label>
+            <div class="players" data-side="home"></div>
+          </div>
+          <div class="team-box">
+            <label>
+              <span>客队</span>
+              <input class="field team-name" data-field="awayTeam" />
+            </label>
+            <div class="players" data-side="away"></div>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

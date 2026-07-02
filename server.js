@@ -7,7 +7,7 @@ loadLocalEnv(path.join(root, ".env"));
 
 const port = Number(process.env.PORT || 5177);
 const extractProvider = (process.env.CBL_EXTRACT_PROVIDER || "mock").toLowerCase();
-const extractModel = process.env.CBL_EXTRACT_MODEL || "";
+const extractModel = process.env.CBL_EXTRACT_MODEL || defaultModel(extractProvider);
 const extractToken = process.env.CBL_EXTRACT_TOKEN || "";
 const extractBaseUrl = process.env.CBL_EXTRACT_BASE_URL || defaultBaseUrl(extractProvider);
 
@@ -165,6 +165,7 @@ async function extractWithOpenAICompatible(images) {
       type: "image_url",
       image_url: {
         url: `data:${image.contentType};base64,${image.buffer.toString("base64")}`,
+        detail: "high",
       },
     })),
   ];
@@ -304,6 +305,11 @@ function defaultBaseUrl(provider) {
   if (provider === "openrouter") return "https://openrouter.ai/api/v1";
   if (provider === "siliconflow") return "https://api.siliconflow.cn/v1";
   if (provider === "openai") return "https://api.openai.com/v1";
+  return "";
+}
+
+function defaultModel(provider) {
+  if (provider === "siliconflow") return "Qwen/Qwen2.5-VL-72B-Instruct";
   return "";
 }
 

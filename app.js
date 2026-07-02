@@ -97,8 +97,10 @@ const matchCount = document.querySelector("#matchCount");
 const statusText = document.querySelector("#statusText");
 const downloadAllButton = document.querySelector("#downloadAllButton");
 const matchTemplate = document.querySelector("#matchTemplate");
+const isFilePreview = window.location.protocol === "file:";
 
 let matches = [];
+statusText.textContent = isFilePreview ? "本地预览模式" : "MVP 原型";
 
 function cloneMatch(match) {
   return {
@@ -673,7 +675,7 @@ async function handleFiles(files) {
 }
 
 async function extractMatches(files) {
-  if (window.location.protocol !== "file:") {
+  if (!isFilePreview) {
     try {
       const formData = new FormData();
       files.forEach((file) => formData.append("images", file, file.name));
@@ -696,7 +698,7 @@ async function extractMatches(files) {
   }
   return {
     matches: mockExtractMatches(files),
-    warnings: ["当前为示例识别结果"],
+    warnings: [isFilePreview ? "本地预览模式，已使用示例数据" : "当前为示例识别结果"],
   };
 }
 

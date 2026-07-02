@@ -668,7 +668,8 @@ async function handleFiles(files) {
   if (!list.length) return;
   statusText.textContent = "正在读取";
   const extracted = await extractMatches(list);
-  setMatches(extracted, "已生成校对表");
+  const status = extracted.warnings.length ? extracted.warnings[0] : "已生成校对表";
+  setMatches(extracted.matches, status);
 }
 
 async function extractMatches(files) {
@@ -683,14 +684,20 @@ async function extractMatches(files) {
       if (response.ok) {
         const payload = await response.json();
         if (Array.isArray(payload.matches) && payload.matches.length) {
-          return payload.matches;
+          return {
+            matches: payload.matches,
+            warnings: Array.isArray(payload.warnings) ? payload.warnings : [],
+          };
         }
       }
     } catch (error) {
       console.warn("extract fallback", error);
     }
   }
-  return mockExtractMatches(files);
+  return {
+    matches: mockExtractMatches(files),
+    warnings: ["当前为示例识别结果"],
+  };
 }
 
 function mockExtractMatches(files) {

@@ -1,43 +1,74 @@
+const POSTER_WIDTH = 1080;
+const POSTER_HEIGHT = 1920;
+
+const psdTemplate = new Image();
+let psdTemplateReady = false;
+psdTemplate.onload = () => {
+  psdTemplateReady = true;
+  renderPreviews();
+};
+psdTemplate.src = "assets/psd-base-artboard-1.png";
+
+const teamLogoImages = new Map();
+const knownTeamLogos = new Map([
+  ["莫干山康溪", "assets/team-logos/莫干山康溪.png"],
+  ["山西华舰", "assets/team-logos/山西华舰.png"],
+  ["小熊猫", "assets/team-logos/小熊猫.png"],
+  ["圣森台球", "assets/team-logos/圣森台球.png"],
+]);
+
 const sampleMatches = [
+  {
+    group: "A组",
+    round: "第五轮",
+    datetime: "2026年7月1日 19:35",
+    stage: "小组赛斯诺克赛段",
+    event: "混合团体",
+    homeTeam: "莫干山康溪",
+    awayTeam: "山西华舰",
+    homePlayers: ["石汉青", "谢圣杰", "齐劲锋", "索菲亚·别尔坚科"],
+    awayPlayers: ["杨蒙", "陈飞龙", "马海龙", "蔡伟"],
+    homeScores: ["59", "39", "0", "31", "64"],
+    awayScores: ["6", "50", "109", "69", "30"],
+  },
+  {
+    group: "A组",
+    round: "第五轮",
+    datetime: "2026年7月1日 19:35",
+    stage: "小组赛斯诺克赛段",
+    event: "混合团体",
+    homeTeam: "小熊猫",
+    awayTeam: "圣森台球",
+    homePlayers: ["邱炮谋", "白云鹏", "孙源泽", "莫甜甜"],
+    awayPlayers: ["刘子铃", "胡佳运", "杨佳欣", "肖扬"],
+    homeScores: ["62", "9", "19", "61", "78"],
+    awayScores: ["48", "78", "59", "58", "0"],
+  },
   {
     group: "B组",
     round: "第五轮",
     datetime: "2026年7月1日 19:35",
-    stage: "斯诺克赛段",
+    stage: "小组赛斯诺克赛段",
+    event: "混合团体",
     homeTeam: "上海久狮",
     awayTeam: "上饶灵山星牌",
     homePlayers: ["张驰", "姚东成", "徐嘉锐", "李碧涵"],
     awayPlayers: ["刘韦壹路", "陈文", "张超", "黎亨"],
+    homeScores: ["", "", "", "", ""],
+    awayScores: ["", "", "", "", ""],
   },
   {
     group: "B组",
     round: "第五轮",
     datetime: "2026年7月1日 19:35",
-    stage: "斯诺克赛段",
+    stage: "小组赛斯诺克赛段",
+    event: "混合团体",
     homeTeam: "浙江久鼎",
     awayTeam: "恺畅",
     homePlayers: ["樊明彤", "徐健豪", "周金豪", "刘林昊"],
     awayPlayers: ["董子豪", "曹泽裔", "韩芳", "梁小龙"],
-  },
-  {
-    group: "A组",
-    round: "第六轮",
-    datetime: "2026年7月1日 19:35",
-    stage: "斯诺克赛段",
-    homeTeam: "莫干山康溪",
-    awayTeam: "圣森台球",
-    homePlayers: ["崔明君", "石汉青", "齐劲锋", "索菲亚·别尔坚科"],
-    awayPlayers: ["杨佳欣", "刘子铃", "胡佳运", "肖扬"],
-  },
-  {
-    group: "A组",
-    round: "第六轮",
-    datetime: "2026年7月1日 19:35",
-    stage: "斯诺克赛段",
-    homeTeam: "小熊猫",
-    awayTeam: "山西华舰",
-    homePlayers: ["梅希文", "周一尘", "孙源泽", "莫甜甜"],
-    awayPlayers: ["马海龙", "陈飞龙", "王宇航", "王翊桐"],
+    homeScores: ["", "", "", "", ""],
+    awayScores: ["", "", "", "", ""],
   },
 ];
 
@@ -45,11 +76,14 @@ const blankMatch = {
   group: "A组",
   round: "第六轮",
   datetime: "2026年7月1日 19:35",
-  stage: "斯诺克赛段",
+  stage: "小组赛斯诺克赛段",
+  event: "混合团体",
   homeTeam: "主队名称",
   awayTeam: "客队名称",
   homePlayers: ["1号球员", "2号球员", "3号球员", "4号球员"],
   awayPlayers: ["1号球员", "2号球员", "3号球员", "4号球员"],
+  homeScores: ["", "", "", "", ""],
+  awayScores: ["", "", "", "", ""],
 };
 
 const fileInput = document.querySelector("#fileInput");
@@ -71,6 +105,8 @@ function cloneMatch(match) {
     ...match,
     homePlayers: [...match.homePlayers],
     awayPlayers: [...match.awayPlayers],
+    homeScores: [...(match.homeScores || ["", "", "", "", ""])],
+    awayScores: [...(match.awayScores || ["", "", "", "", ""])],
   };
 }
 
@@ -112,6 +148,7 @@ function renderEditor() {
 
     fillPlayers(node.querySelector('[data-side="home"]'), match.homePlayers, index, "homePlayers");
     fillPlayers(node.querySelector('[data-side="away"]'), match.awayPlayers, index, "awayPlayers");
+    fillScores(node.querySelector("[data-score-editor]"), match, index);
     matchList.append(node);
   });
 }
@@ -135,6 +172,41 @@ function fillPlayers(container, players, matchIndex, side) {
   }
 }
 
+function fillScores(container, match, matchIndex) {
+  container.innerHTML = "";
+  const rounds = ["第一局", "第二局", "第三局", "第四局", "第五局"];
+  rounds.forEach((round, index) => {
+    const row = document.createElement("div");
+    row.className = "score-row";
+    const roundLabel = document.createElement("span");
+    roundLabel.textContent = round;
+
+    const homeName = document.createElement("span");
+    homeName.textContent = index === 4 ? match.homePlayers[0] || "" : match.homePlayers[index] || "";
+    const awayName = document.createElement("span");
+    awayName.textContent = index === 4 ? match.awayPlayers[1] || "" : match.awayPlayers[index] || "";
+
+    const homeScore = document.createElement("input");
+    homeScore.className = "field";
+    homeScore.value = match.homeScores[index] || "";
+    homeScore.addEventListener("input", () => {
+      matches[matchIndex].homeScores[index] = homeScore.value;
+      renderPreviews();
+    });
+
+    const awayScore = document.createElement("input");
+    awayScore.className = "field";
+    awayScore.value = match.awayScores[index] || "";
+    awayScore.addEventListener("input", () => {
+      matches[matchIndex].awayScores[index] = awayScore.value;
+      renderPreviews();
+    });
+
+    row.append(roundLabel, homeName, homeScore, awayScore, awayName);
+    container.append(row);
+  });
+}
+
 function renderPreviews() {
   previewList.innerHTML = "";
 
@@ -155,8 +227,8 @@ function renderPreviews() {
     title.innerHTML = `<span>${safeText(match.homeTeam)} VS ${safeText(match.awayTeam)}</span>`;
 
     const canvas = document.createElement("canvas");
-    canvas.width = 1080;
-    canvas.height = 1581;
+    canvas.width = POSTER_WIDTH;
+    canvas.height = POSTER_HEIGHT;
     drawPoster(canvas, match);
 
     const actions = document.createElement("div");
@@ -175,16 +247,87 @@ function renderPreviews() {
 
 function drawPoster(canvas, match) {
   const ctx = canvas.getContext("2d");
-  const w = canvas.width;
-  const h = canvas.height;
+  if (psdTemplateReady) {
+    ctx.drawImage(psdTemplate, 0, 0, POSTER_WIDTH, POSTER_HEIGHT);
+  } else {
+    drawBackground(ctx, POSTER_WIDTH, POSTER_HEIGHT);
+  }
+  drawPsdResultOverlay(ctx, match);
+}
+
+function drawPsdResultOverlay(ctx, match) {
   const homeColor = colorFor(match.homeTeam);
   const awayColor = colorFor(match.awayTeam);
+  const score = calculateMatchScore(match);
 
-  drawBackground(ctx, w, h);
-  drawHeader(ctx, match);
-  drawTeamBanner(ctx, match, homeColor, awayColor);
-  drawLineup(ctx, match);
-  drawFooter(ctx);
+  drawCenteredText(ctx, "比赛结果", 540, 430, 78, 680, "#fff", 900);
+  drawCenteredText(ctx, match.stage || "小组赛斯诺克赛段", 540, 522, 41, 760, "#fff", 900);
+  drawCenteredText(ctx, `${match.round}${match.group} · ${match.event || "混合团体"}`, 540, 625, 43, 790, "#fff", 900);
+
+  drawPsdTeamCard(ctx, 0, 751, 348, 212, match.homeTeam, homeColor, "left");
+  drawPsdTeamCard(ctx, 732, 752, 347, 211, match.awayTeam, awayColor, "right");
+  drawPsdScore(ctx, score.home, score.away);
+  drawPsdTeamNameBar(ctx, match.homeTeam, match.awayTeam);
+  drawPsdRows(ctx, match);
+}
+
+function drawPsdTeamCard(ctx, x, y, width, height, teamName, colors, side) {
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.25)";
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 8;
+  roundedRect(ctx, x, y, width, height, 14, colors.primary);
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = colors.secondary;
+  ctx.fillRect(x + width * 0.46, y, width * 0.54, height);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  const logo = getTeamLogo(teamName);
+  const logoSize = side === "left" ? 220 : 190;
+  const logoX = side === "left" ? x + 26 : x + width - logoSize - 24;
+  const logoY = y + (height - logoSize) / 2;
+  if (logo?.complete && logo.naturalWidth) {
+    fitImage(ctx, logo, logoX, logoY, logoSize, logoSize);
+  } else {
+    drawTeamMark(ctx, side === "left" ? x + 125 : x + width - 124, y + height / 2, teamName, colors);
+  }
+}
+
+function drawPsdScore(ctx, homeScore, awayScore) {
+  drawCenteredText(ctx, `${homeScore}:${awayScore}`, 540, 945, 176, 420, "#f3dfae", 900, "normal");
+}
+
+function drawPsdTeamNameBar(ctx, homeTeam, awayTeam) {
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.28)";
+  ctx.shadowBlur = 10;
+  roundedRect(ctx, 227, 1002, 626, 80, 0, "rgba(89, 0, 25, 0.72)");
+  ctx.restore();
+  drawFittedText(ctx, homeTeam, 500, 1062, 45, 250, "#fff", 900, "italic", "right");
+  drawCenteredText(ctx, "VS", 540, 1062, 42, 80, "#fff", 900, "italic");
+  drawFittedText(ctx, awayTeam, 580, 1062, 45, 250, "#fff", 900, "italic", "left");
+}
+
+function drawPsdRows(ctx, match) {
+  const rows = makeRows(match);
+  rows.forEach((row, index) => {
+    const y = 1198 + index * 125;
+    drawFittedText(ctx, row.homeName, 76, y, 38, 230, "#fff", 900, "italic", "left");
+    drawFrameScore(ctx, row.homeScore, 300, y - 32, Number(row.homeScore) >= Number(row.awayScore));
+    drawFrameScore(ctx, row.awayScore, 590, y - 32, Number(row.awayScore) > Number(row.homeScore));
+    drawFittedText(ctx, row.awayName, 990, y, 38, 230, "#fff", 900, "italic", "right");
+  });
+}
+
+function drawFrameScore(ctx, score, x, y, isWinner) {
+  const value = `${score ?? ""}`;
+  if (isWinner && value !== "") {
+    roundedRect(ctx, x - 40, y - 5, 80, 44, 6, "#fff");
+    drawCenteredText(ctx, value, x, y + 31, 42, 76, "#731129", 900, "italic");
+  } else {
+    drawCenteredText(ctx, value, x, y + 31, 42, 76, "#fff", 900, "italic");
+  }
 }
 
 function drawBackground(ctx, w, h) {
@@ -375,7 +518,25 @@ function makeRows(match) {
     awayOrder: awayOrders[index],
     homeName: index === 4 ? match.homePlayers[0] : match.homePlayers[index],
     awayName: index === 4 ? match.awayPlayers[1] : match.awayPlayers[index],
+    homeScore: (match.homeScores || [])[index] || "",
+    awayScore: (match.awayScores || [])[index] || "",
   }));
+}
+
+function calculateMatchScore(match) {
+  const rows = makeRows(match);
+  return rows.reduce(
+    (total, row) => {
+      const home = Number(row.homeScore);
+      const away = Number(row.awayScore);
+      if (Number.isFinite(home) && Number.isFinite(away) && row.homeScore !== "" && row.awayScore !== "") {
+        if (home > away) total.home += 1;
+        if (away > home) total.away += 1;
+      }
+      return total;
+    },
+    { home: 0, away: 0 },
+  );
 }
 
 function drawCenteredText(ctx, text, x, y, maxSize, maxWidth, color, weight = 800, style = "normal") {
@@ -437,6 +598,23 @@ function colorFor(seed) {
   return { primary, secondary };
 }
 
+function getTeamLogo(teamName) {
+  if (!knownTeamLogos.has(teamName)) return null;
+  if (teamLogoImages.has(teamName)) return teamLogoImages.get(teamName);
+  const img = new Image();
+  img.onload = renderPreviews;
+  img.src = knownTeamLogos.get(teamName);
+  teamLogoImages.set(teamName, img);
+  return img;
+}
+
+function fitImage(ctx, img, x, y, width, height) {
+  const ratio = Math.min(width / img.naturalWidth, height / img.naturalHeight);
+  const drawW = img.naturalWidth * ratio;
+  const drawH = img.naturalHeight * ratio;
+  ctx.drawImage(img, x + (width - drawW) / 2, y + (height - drawH) / 2, drawW, drawH);
+}
+
 function safeText(value) {
   return `${value || ""}`.replace(/[<>&]/g, "");
 }
@@ -458,15 +636,15 @@ function downloadLongPoster() {
   const gap = 0;
   const longCanvas = document.createElement("canvas");
   longCanvas.width = 1080;
-  longCanvas.height = matches.length * 1581 + Math.max(0, matches.length - 1) * gap;
+  longCanvas.height = matches.length * POSTER_HEIGHT + Math.max(0, matches.length - 1) * gap;
   const ctx = longCanvas.getContext("2d");
 
   matches.forEach((match, index) => {
     const poster = document.createElement("canvas");
-    poster.width = 1080;
-    poster.height = 1581;
+    poster.width = POSTER_WIDTH;
+    poster.height = POSTER_HEIGHT;
     drawPoster(poster, match);
-    ctx.drawImage(poster, 0, index * (1581 + gap));
+    ctx.drawImage(poster, 0, index * (POSTER_HEIGHT + gap));
   });
 
   downloadCanvas(longCanvas, `团体赛果长图-${matches.length}场.png`);

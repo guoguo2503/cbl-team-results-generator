@@ -345,6 +345,32 @@ label span {
   font-weight: 900;
 }
 
+.score-editor {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eadfe3;
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 58px 1fr 64px 64px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.score-row .field {
+  text-align: center;
+}
+
+.score-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
 .icon-button {
   width: 34px;
   height: 34px;
